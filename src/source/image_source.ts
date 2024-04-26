@@ -88,6 +88,7 @@ export type UpdateImageOptions = {
 export class ImageSource extends Evented implements Source {
     type: string;
     id: string;
+    firstIteration = true;
     minzoom: number;
     maxzoom: number;
     tileSize: number;
@@ -101,11 +102,9 @@ export class ImageSource extends Evented implements Source {
     texture: Texture | null;
     image: HTMLImageElement | ImageBitmap;
     tileID: CanonicalTileID;
-    imageOverlapTileIDs: CanonicalTileID[];
+    imageOverlapedTileIDs: CanonicalTileID[];
     _boundsArray: RasterBoundsArray;
-    _overlapedBoundsArray: RasterBoundsArray[] = [];
     boundsBuffer: VertexBuffer;
-    overlapedBoundsBuffer: VertexBuffer[] = [];
     boundsSegments: SegmentVector;
     _loaded: boolean;
     _request: AbortController;
@@ -125,6 +124,15 @@ export class ImageSource extends Evented implements Source {
         this._loaded = false;
 
         this.setEventedParent(eventedParent);
+
+        // Compute what other tiles the image overlaps into and
+        // excludes the tile holding the source
+        if (this.firstIteration) {
+            // transform the geo coordinates into (zoom 0) tile space coordinates
+            const cornerCoords = options.coordinates.map(MercatorCoordinate.fromLngLat);
+            this.tileID = getCoordinatesCenterTileID(cornerCoords);
+            this.imageOverlapedTileIDs = getMediaOverlapTileIds(cornerCoords, this.tileID);
+        }
 
         this.options = options;
     }
@@ -219,14 +227,6 @@ export class ImageSource extends Evented implements Source {
         // transform the geo coordinates into (zoom 0) tile space coordinates
         const cornerCoords = coordinates.map(MercatorCoordinate.fromLngLat);
 
-        // Compute the coordinates of the tile we'll use to hold this image's
-        // render data
-        this.tileID = getCoordinatesCenterTileID(cornerCoords);
-
-        // Compute what other tiles the image overlaps into and
-        // excludes the tile holding the source
-        this.imageOverlapTileIDs = getMediaOverlapTileIds(cornerCoords, this.tileID);
-
         // Constrain min/max zoom to our tile's zoom level in order to force
         // SourceCache to request this tile (no matter what the map's zoom
         // level)
@@ -246,24 +246,6 @@ export class ImageSource extends Evented implements Source {
             this.boundsBuffer.destroy();
             delete this.boundsBuffer;
         }
-        for (const overlapTileId of this.imageOverlapTileIDs) {
-            // Transform the corner coordinates into the coordinate space of our
-            // tile.
-            const tileCoords = cornerCoords.map((coord) => overlapTileId.getTilePoint(coord)._round());
-            const overlapedBoundsArray = new RasterBoundsArray();
-            overlapedBoundsArray.emplaceBack(tileCoords[0].x, tileCoords[0].y, 0, 0);
-            overlapedBoundsArray.emplaceBack(tileCoords[1].x, tileCoords[1].y, EXTENT, 0);
-            overlapedBoundsArray.emplaceBack(tileCoords[3].x, tileCoords[3].y, 0, EXTENT);
-            overlapedBoundsArray.emplaceBack(tileCoords[2].x, tileCoords[2].y, EXTENT, EXTENT);
-            this._overlapedBoundsArray.push(overlapedBoundsArray);
-
-            if (this.overlapedBoundsBuffer) {
-                this.overlapedBoundsBuffer.forEach(element => {
-                    element.destroy();
-                    delete this.overlapedBoundsBuffer;
-                });
-            }
-        }
 
         this.fire(new Event('data', {dataType: 'source', sourceDataType: 'content'}));
         return this;
@@ -281,13 +263,13 @@ export class ImageSource extends Evented implements Source {
             this.boundsBuffer = context.createVertexBuffer(this._boundsArray, rasterBoundsAttributes.members);
         }
 
-        if (!this.overlapedBoundsBuffer) {
-            for (const overlapedBounds of this._overlapedBoundsArray) {
-                this.overlapedBoundsBuffer = [];
-                const boundBuffer = context.createVertexBuffer(overlapedBounds, rasterBoundsAttributes.members);
-                this.overlapedBoundsBuffer.push(boundBuffer);
-            }
-        }
+        // if (!this.overlapedBoundsBuffer) {
+        //     for (const overlapedBounds of this._overlapedBoundsArray) {
+        //         this.overlapedBoundsBuffer = [];
+        //         const boundBuffer = context.createVertexBuffer(overlapedBounds, rasterBoundsAttributes.members);
+        //         this.overlapedBoundsBuffer.push(boundBuffer);
+        //     }
+        // }
 
         if (!this.boundsSegments) {
             this.boundsSegments = SegmentVector.simpleSegment(0, 0, 4, 2);
@@ -339,6 +321,10 @@ export class ImageSource extends Evented implements Source {
     hasTransition() {
         return false;
     }
+
+    updateTileId(tileId: CanonicalTileID) {
+        this.tileID = tileId;
+    }
 }
 
 /**
@@ -378,7 +364,7 @@ export function getCoordinatesCenterTileID(coords: Array<MercatorCoordinate>) {
  * @returns other tiles that image or video crosses into.
  * @internal
  */
-function getMediaOverlapTileIds(coords: MercatorCoordinate[], tileID: CanonicalTileID): Array<CanonicalTileID> {
+export function getMediaOverlapTileIds(coords: MercatorCoordinate[], tileID: CanonicalTileID): Array<CanonicalTileID> {
     const tilesOverlapedByImageIDs: Array<CanonicalTileID> = [];
     let minX = Infinity;
     let minY = Infinity;
@@ -389,20 +375,27 @@ function getMediaOverlapTileIds(coords: MercatorCoordinate[], tileID: CanonicalT
         minY = Math.min(minY, coord.y);
         maxX = Math.max(maxX, coord.x);
         maxY = Math.max(maxY, coord.y);
-        const dMax = Math.max(coord[0], coord[1]);
+    }
+    for (const coord of coords) {
+        const dx = maxX - minX;
+        const dy = maxY - minY;
+        const dMax = Math.max(dx, dy);
         const zoom = Math.max(0, Math.floor(-Math.log(dMax) / Math.LN2));
-        const tilesAtZoom = Math.pow(2, zoom);
+        const tilesAtZoom = Math.pow(2, tileID.z);
         const borderTileId = new CanonicalTileID(
             zoom,
-            Math.floor((minX + maxX) / 2 * tilesAtZoom),
-            Math.floor((minY + maxY) / 2 * tilesAtZoom)
+            Math.floor(coord.x * tilesAtZoom),
+            Math.floor(coord.y * tilesAtZoom)
         );
-        if (tileID !== borderTileId) {
+        if (tileID.key !== borderTileId.key) {
             tilesOverlapedByImageIDs.push(borderTileId);
+            for (let index = 0; index < tilesOverlapedByImageIDs.length - 1; index++) {
+                if (tilesOverlapedByImageIDs[index].x === borderTileId.x && tilesOverlapedByImageIDs[index].y === borderTileId.y) {
+                    tilesOverlapedByImageIDs.pop();
+                }
+            }
         }
-
     }
-
     return tilesOverlapedByImageIDs;
 
 }

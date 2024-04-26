@@ -69,13 +69,6 @@ export function drawRaster(painter: Painter, sourceCache: SourceCache, layer: Ra
             program.draw(context, gl.TRIANGLES, depthMode, StencilMode.disabled, colorMode, CullFaceMode.disabled,
                 uniformValues, terrainData, layer.id, source.boundsBuffer,
                 painter.quadTriangleIndexBuffer, source.boundsSegments);
-            if (source._overlapedBoundsArray.length > 0) {
-                for (const buffer of source.overlapedBoundsBuffer) {
-                    program.draw(context, gl.TRIANGLES, depthMode, StencilMode.disabled, colorMode, CullFaceMode.disabled,
-                        uniformValues, terrainData, layer.id, buffer,
-                        painter.quadTriangleIndexBuffer, source.boundsSegments);
-                }
-            }
         } else {
             program.draw(context, gl.TRIANGLES, depthMode, stencilModes[coord.overscaledZ], colorMode, CullFaceMode.disabled,
                 uniformValues, terrainData, layer.id, painter.rasterBoundsBuffer,
