@@ -842,7 +842,7 @@ export class Style extends Evented {
         }));
         sourceCache.onAdd(this.map);
 
-        // Add sourceCache to Style for a source Image crossing over tiles
+        // Add sourceCache to Style for a source Image crossing over tile boundaries
         const coordinates = (this.sourceCaches[id].getSource() as ImageSource).coordinates;
         if (sourceCache._source instanceof ImageSource && sourceCache._source.firstIteration) {
             sourceCache._source.firstIteration = false;
@@ -850,6 +850,7 @@ export class Style extends Evented {
             const sourceImage = this.sourceCaches[id]._source as ImageSource;
             const trialTileId = sourceImage.imageOverlapedTileIDs;
             console.log({trialTileId});
+            // Clones a Source and Layer to neighboring tiles that the image crosses over to.
             for (const tileId of sourceImage.imageOverlapedTileIDs) {
                 const sourceCache2 = this.sourceCaches[id + index] = new SourceCache(
                     id + index,

@@ -126,10 +126,11 @@ export class ImageSource extends Evented implements Source {
         this.setEventedParent(eventedParent);
 
         // Compute what other tiles the image overlaps into and
-        // excludes the tile holding the source
+        // excludes the tile holding the source.
         if (this.firstIteration) {
             // transform the geo coordinates into (zoom 0) tile space coordinates
             const cornerCoords = options.coordinates.map(MercatorCoordinate.fromLngLat);
+            // Sets the initial tile value for first time creating the source.
             this.tileID = getCoordinatesCenterTileID(cornerCoords);
             this.imageOverlapedTileIDs = getMediaOverlapTileIds(cornerCoords, this.tileID);
         }
@@ -262,14 +263,6 @@ export class ImageSource extends Evented implements Source {
         if (!this.boundsBuffer) {
             this.boundsBuffer = context.createVertexBuffer(this._boundsArray, rasterBoundsAttributes.members);
         }
-
-        // if (!this.overlapedBoundsBuffer) {
-        //     for (const overlapedBounds of this._overlapedBoundsArray) {
-        //         this.overlapedBoundsBuffer = [];
-        //         const boundBuffer = context.createVertexBuffer(overlapedBounds, rasterBoundsAttributes.members);
-        //         this.overlapedBoundsBuffer.push(boundBuffer);
-        //     }
-        // }
 
         if (!this.boundsSegments) {
             this.boundsSegments = SegmentVector.simpleSegment(0, 0, 4, 2);
