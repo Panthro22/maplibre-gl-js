@@ -59,7 +59,7 @@ export function drawRaster(painter: Painter, sourceCache: SourceCache, layer: Ra
         } else {
             tile.texture.bind(textureFilter, gl.CLAMP_TO_EDGE, gl.LINEAR_MIPMAP_NEAREST);
         }
-
+        // Set the iteration here
         const terrainData = painter.style.map.terrain && painter.style.map.terrain.getTerrainData(coord);
         const terrainCoord = terrainData ? coord : null;
         const posMatrix = terrainCoord ? terrainCoord.posMatrix : painter.transform.calculatePosMatrix(coord.toUnwrapped(), align);
@@ -69,6 +69,13 @@ export function drawRaster(painter: Painter, sourceCache: SourceCache, layer: Ra
             program.draw(context, gl.TRIANGLES, depthMode, StencilMode.disabled, colorMode, CullFaceMode.disabled,
                 uniformValues, terrainData, layer.id, source.boundsBuffer,
                 painter.quadTriangleIndexBuffer, source.boundsSegments);
+            if (source.imageOverlapedTileIDs) {
+                for (const boundsBufferOverLappedTile of source.boundsBufferOverLappedTiles) {
+                    program.draw(context, gl.TRIANGLES, depthMode, StencilMode.disabled, colorMode, CullFaceMode.disabled,
+                        uniformValues, terrainData, layer.id, boundsBufferOverLappedTile,
+                        painter.quadTriangleIndexBuffer, source.boundsSegments);
+                }
+            }
         } else {
             program.draw(context, gl.TRIANGLES, depthMode, stencilModes[coord.overscaledZ], colorMode, CullFaceMode.disabled,
                 uniformValues, terrainData, layer.id, painter.rasterBoundsBuffer,

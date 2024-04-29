@@ -95,6 +95,7 @@ export class ImageSource extends Evented implements Source {
     url: string;
 
     coordinates: Coordinates;
+    cornerCoords: MercatorCoordinate[];
     tiles: {[_: string]: Tile};
     options: any;
     dispatcher: Dispatcher;
@@ -104,7 +105,9 @@ export class ImageSource extends Evented implements Source {
     tileID: CanonicalTileID;
     imageOverlapedTileIDs: CanonicalTileID[];
     _boundsArray: RasterBoundsArray;
+    _boundsArrayOfOverLapedTiles: RasterBoundsArray[];
     boundsBuffer: VertexBuffer;
+    boundsBufferOverLappedTiles: VertexBuffer[];
     boundsSegments: SegmentVector;
     _loaded: boolean;
     _request: AbortController;
@@ -226,7 +229,7 @@ export class ImageSource extends Evented implements Source {
         // may be outside the tile, because raster tiles aren't clipped when rendering.
 
         // transform the geo coordinates into (zoom 0) tile space coordinates
-        const cornerCoords = coordinates.map(MercatorCoordinate.fromLngLat);
+        this.cornerCoords = coordinates.map(MercatorCoordinate.fromLngLat);
 
         // Constrain min/max zoom to our tile's zoom level in order to force
         // SourceCache to request this tile (no matter what the map's zoom
@@ -235,13 +238,17 @@ export class ImageSource extends Evented implements Source {
 
         // Transform the corner coordinates into the coordinate space of our
         // tile.
-        const tileCoords = cornerCoords.map((coord) => this.tileID.getTilePoint(coord)._round());
+        const tileCoords = this.cornerCoords.map((coord) => this.tileID.getTilePoint(coord)._round());
 
         this._boundsArray = new RasterBoundsArray();
         this._boundsArray.emplaceBack(tileCoords[0].x, tileCoords[0].y, 0, 0);
         this._boundsArray.emplaceBack(tileCoords[1].x, tileCoords[1].y, EXTENT, 0);
         this._boundsArray.emplaceBack(tileCoords[3].x, tileCoords[3].y, 0, EXTENT);
         this._boundsArray.emplaceBack(tileCoords[2].x, tileCoords[2].y, EXTENT, EXTENT);
+
+        if (this.imageOverlapedTileIDs.length > 1) {
+            this.setOverlappedCoordinates();
+        }
 
         if (this.boundsBuffer) {
             this.boundsBuffer.destroy();
@@ -250,6 +257,31 @@ export class ImageSource extends Evented implements Source {
 
         this.fire(new Event('data', {dataType: 'source', sourceDataType: 'content'}));
         return this;
+    }
+
+    // Handles getting the needed information a source requires for the other tiles areas
+    setOverlappedCoordinates() {
+
+        for (const tileId of this.imageOverlapedTileIDs) {
+            // Transform the corner coordinates into the coordinate space of each
+            // tile.
+            const tileCoords = this.cornerCoords.map((coord) => tileId.getTilePoint(coord)._round());
+
+            const _overlappedBoundsArray = new RasterBoundsArray();
+            _overlappedBoundsArray.emplaceBack(tileCoords[0].x, tileCoords[0].y, 0, 0);
+            _overlappedBoundsArray.emplaceBack(tileCoords[1].x, tileCoords[1].y, EXTENT, 0);
+            _overlappedBoundsArray.emplaceBack(tileCoords[3].x, tileCoords[3].y, 0, EXTENT);
+            _overlappedBoundsArray.emplaceBack(tileCoords[2].x, tileCoords[2].y, EXTENT, EXTENT);
+
+            this._boundsArrayOfOverLapedTiles.push(_overlappedBoundsArray);
+        }
+
+        if (this.boundsBufferOverLappedTiles) {
+            for (let index = 0; index < this.boundsBufferOverLappedTiles.length; index++) {
+                this.boundsBufferOverLappedTiles[index] = null;
+            }
+            delete this.boundsBufferOverLappedTiles;
+        }
     }
 
     prepare() {
@@ -262,6 +294,12 @@ export class ImageSource extends Evented implements Source {
 
         if (!this.boundsBuffer) {
             this.boundsBuffer = context.createVertexBuffer(this._boundsArray, rasterBoundsAttributes.members);
+        }
+
+        if (!this.boundsBufferOverLappedTiles) {
+            for (const _boundsArrayOfOverLapedTile of this._boundsArrayOfOverLapedTiles) {
+                this.boundsBufferOverLappedTiles.push(context.createVertexBuffer(_boundsArrayOfOverLapedTile, rasterBoundsAttributes.members));
+            }
         }
 
         if (!this.boundsSegments) {

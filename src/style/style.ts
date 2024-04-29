@@ -842,37 +842,37 @@ export class Style extends Evented {
         }));
         sourceCache.onAdd(this.map);
 
-        // Add sourceCache to Style for a source Image crossing over tile boundaries
-        const coordinates = (this.sourceCaches[id].getSource() as ImageSource).coordinates;
-        if (sourceCache._source instanceof ImageSource && sourceCache._source.firstIteration) {
-            sourceCache._source.firstIteration = false;
-            let index = 0;
-            const sourceImage = this.sourceCaches[id]._source as ImageSource;
-            const trialTileId = sourceImage.imageOverlapedTileIDs;
-            console.log({trialTileId});
-            // Clones a Source and Layer to neighboring tiles that the image crosses over to.
-            for (const tileId of sourceImage.imageOverlapedTileIDs) {
-                const sourceCache2 = this.sourceCaches[id + index] = new SourceCache(
-                    id + index,
-                    {
-                        type: 'image',
-                        url: '../assets/dog.jpg',
-                        coordinates
-                    },
-                    this.dispatcher
-                );
-                sourceCache2.style = this;
-                sourceCache2.setEventedParent(this, () => ({
-                    isSourceLoaded: sourceCache2.loaded(),
-                    source: sourceCache2.serialize(),
-                    sourceId: id
-                }));
-                (sourceCache2.getSource() as ImageSource).updateTileId(tileId);
-                sourceCache2.onAdd(this.map);
-                this.addLayer({'id': id + index, 'type': 'raster', 'source': id + index});
-                index++;
-            }
-        }
+        // // Add sourceCache to Style for a source Image crossing over tile boundaries
+        // const coordinates = (this.sourceCaches[id].getSource() as ImageSource).coordinates;
+        // if (sourceCache._source instanceof ImageSource && sourceCache._source.firstIteration) {
+        //     sourceCache._source.firstIteration = false;
+        //     let index = 0;
+        //     const sourceImage = this.sourceCaches[id]._source as ImageSource;
+        //     const trialTileId = sourceImage.imageOverlapedTileIDs;
+        //     console.log({trialTileId});
+        //     // Clones a Source and Layer to neighboring tiles that the image crosses over to.
+        //     for (const tileId of sourceImage.imageOverlapedTileIDs) {
+        //         const sourceCache2 = this.sourceCaches[id + index] = new SourceCache(
+        //             id + index,
+        //             {
+        //                 type: 'image',
+        //                 url: '../assets/dog.jpg',
+        //                 coordinates
+        //             },
+        //             this.dispatcher
+        //         );
+        //         sourceCache2.style = this;
+        //         sourceCache2.setEventedParent(this, () => ({
+        //             isSourceLoaded: sourceCache2.loaded(),
+        //             source: sourceCache2.serialize(),
+        //             sourceId: id
+        //         }));
+        //         (sourceCache2.getSource() as ImageSource).updateTileId(tileId);
+        //         sourceCache2.onAdd(this.map);
+        //         this.addLayer({'id': id + index, 'type': 'raster', 'source': id + index});
+        //         index++;
+        //     }
+        // }
         this._changed = true;
     }
 
