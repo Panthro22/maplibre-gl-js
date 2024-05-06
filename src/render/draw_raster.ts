@@ -11,7 +11,6 @@ import type {Painter} from './painter';
 import type {SourceCache} from '../source/source_cache';
 import type {RasterStyleLayer} from '../style/style_layer/raster_style_layer';
 import {OverscaledTileID} from '../source/tile_id';
-// import {Tile} from '../source/tile';
 
 export function drawRaster(painter: Painter, sourceCache: SourceCache, layer: RasterStyleLayer, tileIDs: Array<OverscaledTileID>) {
     if (painter.renderPass !== 'translucent') return;
@@ -24,12 +23,12 @@ export function drawRaster(painter: Painter, sourceCache: SourceCache, layer: Ra
     const program = painter.useProgram('raster');
 
     const colorMode = painter.colorModeForRenderPass();
-    // firstIteration = firstIteration ? firstIteration : true;
 
     const [stencilModes, coords] = source instanceof ImageSource ? [{}, tileIDs] :
         painter.stencilConfigForOverlap(tileIDs);
 
     const minTileZ = coords[coords.length - 1 ].overscaledZ;
+
     const align = !painter.options.moving;
     for (const coord of coords) {
         // Set the lower zoom level to sublayer 0, and higher zoom levels to higher sublayers
@@ -38,6 +37,7 @@ export function drawRaster(painter: Painter, sourceCache: SourceCache, layer: Ra
             layer.paint.get('raster-opacity') === 1 ? DepthMode.ReadWrite : DepthMode.ReadOnly, gl.LESS);
 
         const tile = sourceCache.getTile(coord);
+
         tile.registerFadeDuration(layer.paint.get('raster-fade-duration'));
 
         const parentTile = sourceCache.findLoadedParent(coord, 0),

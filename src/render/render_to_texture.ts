@@ -82,17 +82,10 @@ export class RenderToTexture {
         this._rttTiles = [];
         this._renderableTiles = this.terrain.sourceCache.getRenderableTiles();
         this._renderableLayerIds = style._order.filter(id => !style._layers[id].isHidden(zoom));
-        // let sourceDetails: Source;
+
         const overlappedTileIDs: OverscaledTileID[] = [];
         this._coordsDescendingInv = {};
         for (const id in style.sourceCaches) {
-            // sourceDetails = style.sourceCaches[id]._source;
-            // if (sourceDetails instanceof ImageSource && sourceDetails.imageOverlapedTileIDs) {
-            //     for (const tileId in style.sourceCaches[id]._tiles) {
-            //         if (sourceDetails.)
-            //         overlappedTileIDs.concat(sourceDetails.tiles[tileId].tileID);
-            //     }
-            // }
             this._coordsDescendingInv[id] = {};
             const tileIDs = style.sourceCaches[id].getVisibleCoordinates();
             tileIDs.concat(overlappedTileIDs);

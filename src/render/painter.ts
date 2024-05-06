@@ -491,7 +491,7 @@ export class Painter {
     renderLayer(painter: Painter, sourceCache: SourceCache, layer: StyleLayer, coords: Array<OverscaledTileID>) {
         if (layer.isHidden(this.transform.zoom)) return;
         if (layer.type !== 'background' && layer.type !== 'custom' && !(coords || []).length) return;
-        this.id = layer.id; // new painter created based off layer.id as its id
+        this.id = layer.id;
 
         switch (layer.type) {
             case 'symbol':

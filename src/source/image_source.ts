@@ -88,7 +88,6 @@ export type UpdateImageOptions = {
 export class ImageSource extends Evented implements Source {
     type: string;
     id: string;
-    firstIteration = true;
     minzoom: number;
     maxzoom: number;
     tileSize: number;
@@ -131,13 +130,11 @@ export class ImageSource extends Evented implements Source {
 
         // Compute what other tiles the image overlaps into and
         // excludes the tile holding the source.
-        if (this.firstIteration) {
-            // transform the geo coordinates into (zoom 0) tile space coordinates
-            const cornerCoords = options.coordinates.map(MercatorCoordinate.fromLngLat);
-            // Sets the initial tile value for first time creating the source.
-            this.tileID = getCoordinatesCenterTileID(cornerCoords);
-            this.imageOverlapedTileIDs = getMediaOverlapTileIds(cornerCoords, this.tileID);
-        }
+        // transform the geo coordinates into (zoom 0) tile space coordinates
+        const cornerCoords = options.coordinates.map(MercatorCoordinate.fromLngLat);
+        // Sets the initial tile value for first time creating the source.
+        this.tileID = getCoordinatesCenterTileID(cornerCoords);
+        this.imageOverlapedTileIDs = getMediaOverlapTileIds(cornerCoords, this.tileID);
 
         this.options = options;
     }

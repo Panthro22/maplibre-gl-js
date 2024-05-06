@@ -291,7 +291,7 @@ export class LineBucket implements Bucket {
         if (join === 'bevel') miterLimit = 1.05;
 
         const sharpCornerOffset = this.overscaling <= 16 ?
-            SHARP_CORNER_OFFSET * EXTENT / (256 * this.overscaling) :
+            SHARP_CORNER_OFFSET * EXTENT / (512 * this.overscaling) :
             0;
 
         // we could be more precise, but it would only save a negligible amount of space
