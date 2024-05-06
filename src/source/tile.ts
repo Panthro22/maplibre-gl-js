@@ -70,7 +70,7 @@ export class Tile {
     collisionBoxArray: CollisionBoxArray;
     redoWhenDone: boolean;
     showCollisionBoxes: boolean;
-    placementSource: any; // what is this used for?
+    placementSource: any;
     actor: Actor;
     vtLayers: {[_: string]: VectorTileLayer};
 

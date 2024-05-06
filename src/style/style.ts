@@ -848,8 +848,6 @@ export class Style extends Evented {
         //     sourceCache._source.firstIteration = false;
         //     let index = 0;
         //     const sourceImage = this.sourceCaches[id]._source as ImageSource;
-        //     const trialTileId = sourceImage.imageOverlapedTileIDs;
-        //     console.log({trialTileId});
         //     // Clones a Source and Layer to neighboring tiles that the image crosses over to.
         //     for (const tileId of sourceImage.imageOverlapedTileIDs) {
         //         const sourceCache2 = this.sourceCaches[id + index] = new SourceCache(
@@ -869,7 +867,7 @@ export class Style extends Evented {
         //         }));
         //         (sourceCache2.getSource() as ImageSource).updateTileId(tileId);
         //         sourceCache2.onAdd(this.map);
-        //         this.addLayer({'id': id + index, 'type': 'raster', 'source': id + index});
+        //         // this.addLayer({'id': id + index, 'type': 'raster', 'source': id + index});
         //         index++;
         //     }
         // }
@@ -894,6 +892,14 @@ export class Style extends Evented {
             }
         }
 
+        // if (this.sourceCaches.getSource[id] instanceof ImageSource && this.sourceCaches.getSource[id].imageOverlapedTileIDs) {
+        //     for (let index = 0; index < this.sourceCaches.getSource[id].imageOverlapedTileIDs.length; index++) {
+        //         const sourceCache2 = this.sourceCaches[id + index];
+        //         delete this.sourceCaches[id + index];
+        //         delete this._updatedSources[id + index];
+        //         sourceCache2.onRemove(this.map);
+        //     }
+        // }
         const sourceCache = this.sourceCaches[id];
         delete this.sourceCaches[id];
         delete this._updatedSources[id];
@@ -936,7 +942,7 @@ export class Style extends Evented {
      * @param options - Style setter options.
      * @returns `this`.
      */
-    addLayer(layerObject: AddLayerObject, before?: string, options: StyleSetterOptions = {}): this {
+    addLayer(layerObject: AddLayerObject, before?: string, options: StyleSetterOptions = {}, layerClone?: boolean): this {
         this._checkLoaded();
 
         const id = layerObject.id;
@@ -968,6 +974,12 @@ export class Style extends Evented {
             this._validateLayer(layer);
 
             layer.setEventedParent(this, {layer: {id}});
+            // const layerSource = this.getSource(layer.source);
+            // if (layerSource instanceof ImageSource && layerSource.imageOverlapedTileIDs && !layerClone) {
+            //     for (let index = 0; index < layerSource.imageOverlapedTileIDs.length; index++) {
+            //         this.addLayer({'id': id + index, 'type': 'raster', 'source': layerSource.id + index}, before, options, true);
+            //     }
+            // }
         }
 
         const index = before ? this._order.indexOf(before) : this._order.length;
@@ -1011,7 +1023,7 @@ export class Style extends Evented {
      * @param id - ID of the layer to move
      * @param before - ID of an existing layer to insert before
      */
-    moveLayer(id: string, before?: string) {
+    moveLayer(id: string, before?: string, layerClone?: boolean) {
         this._checkLoaded();
         this._changed = true;
 
@@ -1033,6 +1045,12 @@ export class Style extends Evented {
             this.fire(new ErrorEvent(new Error(`Cannot move layer "${id}" before non-existing layer "${before}".`)));
             return;
         }
+        // const layerSource = this.getSource(layer.source);
+        // if (layerSource instanceof ImageSource && layerSource.imageOverlapedTileIDs && !layerClone) {
+        //     for (let index = 0; index < layerSource.imageOverlapedTileIDs.length; index++) {
+        //         this.moveLayer(id + index, before, true);
+        //     }
+        // }
         this._order.splice(newIndex, 0, id);
 
         this._layerOrderChanged = true;
@@ -1046,7 +1064,7 @@ export class Style extends Evented {
      * @param id - id of the layer to remove
      * @event `error` - Fired if the layer does not exist
      */
-    removeLayer(id: string) {
+    removeLayer(id: string, layerClone?: boolean) {
         this._checkLoaded();
 
         const layer = this._layers[id];
@@ -1070,6 +1088,13 @@ export class Style extends Evented {
         }
         delete this._updatedLayers[id];
         delete this._updatedPaintProps[id];
+
+        // const layerSource = this.getSource(layer.source);
+        // if (layerSource instanceof ImageSource && layerSource.imageOverlapedTileIDs && !layerClone) {
+        //     for (let index = 0; index < layerSource.imageOverlapedTileIDs.length; index++) {
+        //         this.removeLayer(id + index, true);
+        //     }
+        // }
 
         if (layer.onRemove) {
             layer.onRemove(this.map);
@@ -1105,7 +1130,7 @@ export class Style extends Evented {
         return id in this._layers;
     }
 
-    setLayerZoomRange(layerId: string, minzoom?: number | null, maxzoom?: number | null) {
+    setLayerZoomRange(layerId: string, minzoom?: number | null, maxzoom?: number | null, layerClone?: boolean) {
         this._checkLoaded();
 
         const layer = this.getLayer(layerId);
@@ -1122,10 +1147,16 @@ export class Style extends Evented {
         if (maxzoom != null) {
             layer.maxzoom = maxzoom;
         }
+        // const layerSource = this.getSource(layer.source);
+        // if (layerSource instanceof ImageSource && layerSource.imageOverlapedTileIDs && !layerClone) {
+        //     for (let index = 0; index < layerSource.imageOverlapedTileIDs.length; index++) {
+        //         this.setLayerZoomRange(layerId + index, minzoom, maxzoom, true);
+        //     }
+        // }
         this._updateLayer(layer);
     }
 
-    setFilter(layerId: string, filter?: FilterSpecification | null,  options: StyleSetterOptions = {}) {
+    setFilter(layerId: string, filter?: FilterSpecification | null,  options: StyleSetterOptions = {}, layerClone?: boolean) {
         this._checkLoaded();
 
         const layer = this.getLayer(layerId);
@@ -1148,6 +1179,13 @@ export class Style extends Evented {
             return;
         }
 
+        // const layerSource = this.getSource(layer.source);
+        // if (layerSource instanceof ImageSource && layerSource.imageOverlapedTileIDs && !layerClone) {
+        //     for (let index = 0; index < layerSource.imageOverlapedTileIDs.length; index++) {
+        //         this.setFilter(layerId + index, filter, options, true);
+        //     }
+        // }
+
         layer.filter = clone(filter);
         this._updateLayer(layer);
     }
@@ -1161,7 +1199,7 @@ export class Style extends Evented {
         return clone(this.getLayer(layer).filter);
     }
 
-    setLayoutProperty(layerId: string, name: string, value: any,  options: StyleSetterOptions = {}) {
+    setLayoutProperty(layerId: string, name: string, value: any,  options: StyleSetterOptions = {}, layerClone?: boolean) {
         this._checkLoaded();
 
         const layer = this.getLayer(layerId);
@@ -1173,6 +1211,14 @@ export class Style extends Evented {
         if (deepEqual(layer.getLayoutProperty(name), value)) return;
 
         layer.setLayoutProperty(name, value, options);
+
+        // const layerSource = this.getSource(layer.source);
+        // if (layerSource instanceof ImageSource && layerSource.imageOverlapedTileIDs && !layerClone) {
+        //     for (let index = 0; index < layerSource.imageOverlapedTileIDs.length; index++) {
+        //         this.setLayoutProperty(layerId + index, name, value, options, true);
+        //     }
+        // }
+
         this._updateLayer(layer);
     }
 
@@ -1192,7 +1238,7 @@ export class Style extends Evented {
         return layer.getLayoutProperty(name);
     }
 
-    setPaintProperty(layerId: string, name: string, value: any, options: StyleSetterOptions = {}) {
+    setPaintProperty(layerId: string, name: string, value: any, options: StyleSetterOptions = {}, layerClone?: boolean) {
         this._checkLoaded();
 
         const layer = this.getLayer(layerId);
@@ -1207,6 +1253,13 @@ export class Style extends Evented {
         if (requiresRelayout) {
             this._updateLayer(layer);
         }
+
+        // const layerSource = this.getSource(layer.source);
+        // if (layerSource instanceof ImageSource && layerSource.imageOverlapedTileIDs && !layerClone) {
+        //     for (let index = 0; index < layerSource.imageOverlapedTileIDs.length; index++) {
+        //         this.setPaintProperty(layerId + index, name, value, options, true);
+        //     }
+        // }
 
         this._changed = true;
         this._updatedPaintProps[layerId] = true;
@@ -1335,7 +1388,6 @@ export class Style extends Evented {
             this._updatedSources[layer.source] = 'reload';
             this.sourceCaches[layer.source].pause();
         }
-
         // upon updating, serilized layer dictionary should be reset.
         // When needed, it will be populated with the correct copy again.
         this._serializedLayers = null;

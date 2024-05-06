@@ -1,4 +1,4 @@
-import {CanonicalTileID} from './tile_id';
+import {CanonicalTileID, OverscaledTileID} from './tile_id';
 import {Event, ErrorEvent, Evented} from '../util/evented';
 import {ImageRequest} from '../util/image_request';
 import {ResourceType} from '../util/request_manager';
@@ -8,12 +8,12 @@ import rasterBoundsAttributes from '../data/raster_bounds_attributes';
 import {SegmentVector} from '../data/segment';
 import {Texture} from '../render/texture';
 import {MercatorCoordinate} from '../geo/mercator_coordinate';
+import {Tile} from './tile';
 
 import type {Source} from './source';
 import type {CanvasSourceSpecification} from './canvas_source';
 import type {Map} from '../ui/map';
 import type {Dispatcher} from '../util/dispatcher';
-import type {Tile} from './tile';
 import type {VertexBuffer} from '../gl/vertex_buffer';
 import type {
     ImageSourceSpecification,
@@ -105,9 +105,9 @@ export class ImageSource extends Evented implements Source {
     tileID: CanonicalTileID;
     imageOverlapedTileIDs: CanonicalTileID[];
     _boundsArray: RasterBoundsArray;
-    _boundsArrayOfOverLapedTiles: RasterBoundsArray[];
+    _boundsArrayOfOverLappedTiles: {[_: string]: RasterBoundsArray};
     boundsBuffer: VertexBuffer;
-    boundsBufferOverLappedTiles: VertexBuffer[];
+    boundsBufferOverLappedTiles: {[_: string]: VertexBuffer};
     boundsSegments: SegmentVector;
     _loaded: boolean;
     _request: AbortController;
@@ -125,7 +125,8 @@ export class ImageSource extends Evented implements Source {
         this.tileSize = 512;
         this.tiles = {};
         this._loaded = false;
-
+        this._boundsArrayOfOverLappedTiles = {};
+        this.boundsBufferOverLappedTiles = {};
         this.setEventedParent(eventedParent);
 
         // Compute what other tiles the image overlaps into and
@@ -273,12 +274,12 @@ export class ImageSource extends Evented implements Source {
             _overlappedBoundsArray.emplaceBack(tileCoords[3].x, tileCoords[3].y, 0, EXTENT);
             _overlappedBoundsArray.emplaceBack(tileCoords[2].x, tileCoords[2].y, EXTENT, EXTENT);
 
-            this._boundsArrayOfOverLapedTiles.push(_overlappedBoundsArray);
+            this._boundsArrayOfOverLappedTiles[tileId.key] = _overlappedBoundsArray;
         }
 
         if (this.boundsBufferOverLappedTiles) {
-            for (let index = 0; index < this.boundsBufferOverLappedTiles.length; index++) {
-                this.boundsBufferOverLappedTiles[index] = null;
+            for (const tileId of this.imageOverlapedTileIDs) {
+                this.boundsBufferOverLappedTiles[tileId.key] = null;
             }
             delete this.boundsBufferOverLappedTiles;
         }
@@ -297,8 +298,9 @@ export class ImageSource extends Evented implements Source {
         }
 
         if (!this.boundsBufferOverLappedTiles) {
-            for (const _boundsArrayOfOverLapedTile of this._boundsArrayOfOverLapedTiles) {
-                this.boundsBufferOverLappedTiles.push(context.createVertexBuffer(_boundsArrayOfOverLapedTile, rasterBoundsAttributes.members));
+            this.boundsBufferOverLappedTiles = {};
+            for (const id in this._boundsArrayOfOverLappedTiles) {
+                this.boundsBufferOverLappedTiles[id] = context.createVertexBuffer(this._boundsArrayOfOverLappedTiles[id], rasterBoundsAttributes.members);
             }
         }
 
@@ -333,8 +335,8 @@ export class ImageSource extends Evented implements Source {
         // `errored` to indicate that we have no data for it.
         // If the world wraps, we may have multiple "wrapped" copies of the
         // single tile.
-        if (this.tileID && this.tileID.equals(tile.tileID.canonical)) {
-            this.tiles[String(tile.tileID.wrap)] = tile;
+        if ((this.tileID && this.tileID.equals(tile.tileID.canonical)) || !this.imageOverlapedTileIDs.includes(tile.tileID.canonical)) {
+            this.tiles[String(tile.tileID.key)] = tile;
             tile.buckets = {};
         } else {
             tile.state = 'errored';
@@ -355,6 +357,10 @@ export class ImageSource extends Evented implements Source {
 
     updateTileId(tileId: CanonicalTileID) {
         this.tileID = tileId;
+    }
+
+    hasTile(tileID: OverscaledTileID): boolean {
+        return this.imageOverlapedTileIDs.includes(tileID.canonical) || this.tileID === tileID.canonical;
     }
 }
 

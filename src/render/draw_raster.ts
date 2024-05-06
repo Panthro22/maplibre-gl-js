@@ -10,7 +10,8 @@ import {rasterUniformValues} from './program/raster_program';
 import type {Painter} from './painter';
 import type {SourceCache} from '../source/source_cache';
 import type {RasterStyleLayer} from '../style/style_layer/raster_style_layer';
-import type {OverscaledTileID} from '../source/tile_id';
+import {OverscaledTileID} from '../source/tile_id';
+// import {Tile} from '../source/tile';
 
 export function drawRaster(painter: Painter, sourceCache: SourceCache, layer: RasterStyleLayer, tileIDs: Array<OverscaledTileID>) {
     if (painter.renderPass !== 'translucent') return;
@@ -23,12 +24,12 @@ export function drawRaster(painter: Painter, sourceCache: SourceCache, layer: Ra
     const program = painter.useProgram('raster');
 
     const colorMode = painter.colorModeForRenderPass();
+    // firstIteration = firstIteration ? firstIteration : true;
 
     const [stencilModes, coords] = source instanceof ImageSource ? [{}, tileIDs] :
         painter.stencilConfigForOverlap(tileIDs);
 
     const minTileZ = coords[coords.length - 1 ].overscaledZ;
-
     const align = !painter.options.moving;
     for (const coord of coords) {
         // Set the lower zoom level to sublayer 0, and higher zoom levels to higher sublayers
@@ -59,22 +60,21 @@ export function drawRaster(painter: Painter, sourceCache: SourceCache, layer: Ra
         } else {
             tile.texture.bind(textureFilter, gl.CLAMP_TO_EDGE, gl.LINEAR_MIPMAP_NEAREST);
         }
-        // Set the iteration here
+
         const terrainData = painter.style.map.terrain && painter.style.map.terrain.getTerrainData(coord);
         const terrainCoord = terrainData ? coord : null;
         const posMatrix = terrainCoord ? terrainCoord.posMatrix : painter.transform.calculatePosMatrix(coord.toUnwrapped(), align);
         const uniformValues = rasterUniformValues(posMatrix, parentTL || [0, 0], parentScaleBy || 1, fade, layer);
 
         if (source instanceof ImageSource) {
-            program.draw(context, gl.TRIANGLES, depthMode, StencilMode.disabled, colorMode, CullFaceMode.disabled,
-                uniformValues, terrainData, layer.id, source.boundsBuffer,
-                painter.quadTriangleIndexBuffer, source.boundsSegments);
-            if (source.imageOverlapedTileIDs) {
-                for (const boundsBufferOverLappedTile of source.boundsBufferOverLappedTiles) {
-                    program.draw(context, gl.TRIANGLES, depthMode, StencilMode.disabled, colorMode, CullFaceMode.disabled,
-                        uniformValues, terrainData, layer.id, boundsBufferOverLappedTile,
-                        painter.quadTriangleIndexBuffer, source.boundsSegments);
-                }
+            if (source.tileID.key === coord.canonical.key) {
+                program.draw(context, gl.TRIANGLES, depthMode, StencilMode.disabled, colorMode, CullFaceMode.disabled,
+                    uniformValues, terrainData, layer.id, source.boundsBuffer,
+                    painter.quadTriangleIndexBuffer, source.boundsSegments);
+            } else {
+                program.draw(context, gl.TRIANGLES, depthMode, StencilMode.disabled, colorMode, CullFaceMode.disabled,
+                    uniformValues, terrainData, layer.id, source.boundsBufferOverLappedTiles[coord.canonical.key],
+                    painter.quadTriangleIndexBuffer, source.boundsSegments);
             }
         } else {
             program.draw(context, gl.TRIANGLES, depthMode, stencilModes[coord.overscaledZ], colorMode, CullFaceMode.disabled,

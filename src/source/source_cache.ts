@@ -22,6 +22,7 @@ import type {SourceSpecification} from '@maplibre/maplibre-gl-style-spec';
 import type {MapSourceDataEvent} from '../ui/events';
 import {Terrain} from '../render/terrain';
 import {config} from '../util/config';
+import {ImageSource} from './image_source';
 
 /**
  * @internal
@@ -504,12 +505,19 @@ export class SourceCache extends Evented {
         this._coveredTiles = {};
 
         let idealTileIDs: OverscaledTileID[];
-
+        let overlappedTileIDs: Array<OverscaledTileID> = [];
         if (!this.used && !this.usedForTerrain) {
             idealTileIDs = [];
         } else if (this._source.tileID) {
+            if (this._source instanceof ImageSource && this._source.imageOverlapedTileIDs.length > 0) {
+                for (const tileId of this._source.imageOverlapedTileIDs) {
+                    overlappedTileIDs = overlappedTileIDs.concat(transform.getVisibleUnwrappedCoordinates(tileId)
+                        .map((unwrapped) => new OverscaledTileID(unwrapped.canonical.z, unwrapped.wrap, unwrapped.canonical.z, unwrapped.canonical.x, unwrapped.canonical.y)));
+                }
+            }
             idealTileIDs = transform.getVisibleUnwrappedCoordinates(this._source.tileID)
                 .map((unwrapped) => new OverscaledTileID(unwrapped.canonical.z, unwrapped.wrap, unwrapped.canonical.z, unwrapped.canonical.x, unwrapped.canonical.y));
+            idealTileIDs = idealTileIDs.concat(overlappedTileIDs);
         } else {
             idealTileIDs = transform.coveringTiles({
                 tileSize: this.usedForTerrain ? this.tileSize : this._source.tileSize,
@@ -873,7 +881,7 @@ export class SourceCache extends Evented {
         }
 
         // for sources with mutable data, this event fires when the underlying data
-        // to a source is changed. (i.e. GeoJSONSource#setData and ImageSource#serCoordinates)
+        // to a source is changed. (i.e. GeoJSONSource#setData and ImageSource#setCoordinates)
         if (this._sourceLoaded && !this._paused && e.dataType === 'source' && eventSourceDataType === 'content') {
             this.reload();
             if (this.transform) {
