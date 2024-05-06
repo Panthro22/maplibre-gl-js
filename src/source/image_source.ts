@@ -244,7 +244,7 @@ export class ImageSource extends Evented implements Source {
         this._boundsArray.emplaceBack(tileCoords[3].x, tileCoords[3].y, 0, EXTENT);
         this._boundsArray.emplaceBack(tileCoords[2].x, tileCoords[2].y, EXTENT, EXTENT);
 
-        if (this.imageOverlapedTileIDs.length > 1) {
+        if (this.imageOverlapedTileIDs) {
             this.setOverlappedCoordinates();
         }
 

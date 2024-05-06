@@ -83,12 +83,10 @@ export class RenderToTexture {
         this._renderableTiles = this.terrain.sourceCache.getRenderableTiles();
         this._renderableLayerIds = style._order.filter(id => !style._layers[id].isHidden(zoom));
 
-        const overlappedTileIDs: OverscaledTileID[] = [];
         this._coordsDescendingInv = {};
         for (const id in style.sourceCaches) {
             this._coordsDescendingInv[id] = {};
             const tileIDs = style.sourceCaches[id].getVisibleCoordinates();
-            tileIDs.concat(overlappedTileIDs);
             for (const tileID of tileIDs) {
                 const keys = this.terrain.sourceCache.getTerrainCoords(tileID);
                 for (const key in keys) {
