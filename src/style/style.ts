@@ -937,7 +937,6 @@ export class Style extends Evented {
             this._validateLayer(layer);
 
             layer.setEventedParent(this, {layer: {id}});
-
         }
 
         const index = before ? this._order.indexOf(before) : this._order.length;
@@ -1016,7 +1015,7 @@ export class Style extends Evented {
      * @param id - id of the layer to remove
      * @event `error` - Fired if the layer does not exist
      */
-    removeLayer(id: string, layerClone?: boolean) {
+    removeLayer(id: string) {
         this._checkLoaded();
 
         const layer = this._layers[id];
@@ -1075,7 +1074,7 @@ export class Style extends Evented {
         return id in this._layers;
     }
 
-    setLayerZoomRange(layerId: string, minzoom?: number | null, maxzoom?: number | null, layerClone?: boolean) {
+    setLayerZoomRange(layerId: string, minzoom?: number | null, maxzoom?: number | null) {
         this._checkLoaded();
 
         const layer = this.getLayer(layerId);
@@ -1143,7 +1142,6 @@ export class Style extends Evented {
         if (deepEqual(layer.getLayoutProperty(name), value)) return;
 
         layer.setLayoutProperty(name, value, options);
-
         this._updateLayer(layer);
     }
 
@@ -1306,6 +1304,7 @@ export class Style extends Evented {
             this._updatedSources[layer.source] = 'reload';
             this.sourceCaches[layer.source].pause();
         }
+
         // upon updating, serilized layer dictionary should be reset.
         // When needed, it will be populated with the correct copy again.
         this._serializedLayers = null;
