@@ -11,6 +11,9 @@ import Point from '@mapbox/point-geometry';
 import {browser} from '../util/browser';
 import {OverscaledTileID} from './tile_id';
 import {SourceFeatureState} from './source_state';
+import {Terrain} from '../render/terrain';
+import {config} from '../util/config';
+import {ImageSource} from './image_source';
 
 import type {Source} from './source';
 import type {Map} from '../ui/map';
@@ -20,9 +23,6 @@ import type {Transform} from '../geo/transform';
 import type {TileState} from './tile';
 import type {SourceSpecification} from '@maplibre/maplibre-gl-style-spec';
 import type {MapSourceDataEvent} from '../ui/events';
-import {Terrain} from '../render/terrain';
-import {config} from '../util/config';
-import {ImageSource} from './image_source';
 
 /**
  * @internal

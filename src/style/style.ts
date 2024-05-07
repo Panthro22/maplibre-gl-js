@@ -25,7 +25,6 @@ import {PauseablePlacement} from './pauseable_placement';
 import {ZoomHistory} from './zoom_history';
 import {CrossTileSymbolIndex} from '../symbol/cross_tile_symbol_index';
 import {validateCustomStyleLayer} from './style_layer/custom_style_layer';
-import {ImageSource} from '../source/image_source';
 import type {MapGeoJSONFeature} from '../util/vectortile_to_geojson';
 
 // We're skipping validation errors with the `source.canvas` identifier in order

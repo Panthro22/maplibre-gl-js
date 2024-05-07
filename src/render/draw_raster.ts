@@ -10,7 +10,7 @@ import {rasterUniformValues} from './program/raster_program';
 import type {Painter} from './painter';
 import type {SourceCache} from '../source/source_cache';
 import type {RasterStyleLayer} from '../style/style_layer/raster_style_layer';
-import {OverscaledTileID} from '../source/tile_id';
+import type {OverscaledTileID} from '../source/tile_id';
 
 export function drawRaster(painter: Painter, sourceCache: SourceCache, layer: RasterStyleLayer, tileIDs: Array<OverscaledTileID>) {
     if (painter.renderPass !== 'translucent') return;
@@ -27,7 +27,7 @@ export function drawRaster(painter: Painter, sourceCache: SourceCache, layer: Ra
     const [stencilModes, coords] = source instanceof ImageSource ? [{}, tileIDs] :
         painter.stencilConfigForOverlap(tileIDs);
 
-    const minTileZ = coords[coords.length - 1 ].overscaledZ;
+    const minTileZ = coords[coords.length - 1].overscaledZ;
 
     const align = !painter.options.moving;
     for (const coord of coords) {
@@ -73,7 +73,7 @@ export function drawRaster(painter: Painter, sourceCache: SourceCache, layer: Ra
                     painter.quadTriangleIndexBuffer, source.boundsSegments);
             } else {
                 program.draw(context, gl.TRIANGLES, depthMode, StencilMode.disabled, colorMode, CullFaceMode.disabled,
-                    uniformValues, terrainData, layer.id, source.boundsBufferOverLappedTiles[coord.canonical.key],
+                    uniformValues, terrainData, layer.id, source.boundsBufferOfOverLappedTiles[coord.canonical.key],
                     painter.quadTriangleIndexBuffer, source.boundsSegments);
             }
         } else {
