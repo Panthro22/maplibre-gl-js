@@ -6,10 +6,11 @@ import {type FakeServer, fakeServer} from 'nise';
 import {RequestManager} from '../util/request_manager';
 import {sleep, stubAjaxGetImage} from '../util/test/util';
 import {Tile} from './tile';
-import {OverscaledTileID} from './tile_id';
+import {CanonicalTileID, OverscaledTileID} from './tile_id';
 import {VertexBuffer} from '../gl/vertex_buffer';
 import {SegmentVector} from '../data/segment';
 import {Texture} from '../render/texture';
+import {MercatorCoordinate} from '../geo/mercator_coordinate';
 import type {ImageSourceSpecification} from '@maplibre/maplibre-gl-style-spec';
 
 function createSource(options) {
@@ -231,5 +232,29 @@ describe('ImageSource', () => {
         await sleep(0);
 
         expect(missingImagesource.loaded()).toBe(true);
+    });
+
+    test('Gather neighboring tiles information needed to draw image onto the other tiles', () => {
+        const map = new StubMap() as any;
+        const source = createSource({url: '/image.png', eventedParent: map});
+        source.coordinates = [
+            [11.94585, 47.31074],
+            [12.05585, 47.31074],
+            [12.05585, 47.24074],
+            [11.94585, 47.24074]
+        ];
+        source.onAdd(new StubMap() as any);
+        const tileId = new CanonicalTileID(11, 1092, 718);
+        expect(source.tileID).toBe(tileId);
+
+        expect(source._boundsArrayOfOverLappedTiles.length).toBeGreaterThan(0);
+        expect(source._boundsArrayOfOverLappedTiles['vhvobb']).toBeTruthy();
+
+        expect(source.boundsBufferOfOverLappedTiles.length).toHaveLength(3);
+        expect(source.boundsBufferOfOverLappedTiles[source.tileID.key]).toBeFalsy();
+        // CanonicalTileIDs, Ensure that this image Size and placement recieves the other 3 tiles
+        // that it overlaps on information.
+        expect(source.imageOverlapedTileIDs.length).toHaveLength(3);
+        expect(source.imageOverlapedTileIDs['vheobb']).toBeTruthy();
     });
 });

@@ -6,6 +6,7 @@
 
 ### 🐞 Bug fixes
 - _...Add new stuff here..._
+- Fix Raster Images/Videos not showing across tile sections with Terrain on. ([#1559](https://github.com/maplibre/maplibre-gl-js/issues/1559))
 
 ## 4.1.3
 
